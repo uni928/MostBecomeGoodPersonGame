@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>街いち善人 — Reputation 6666 を目指せ！</title>
+<meta name="description" content="所持金・食事・水・評判を管理しながら、街で一番の善人（評判6666）を目指す1日1アクションゲーム。" />
+<style>
+  :root{
+    --bg:#0b0f14; --card:#121821; --muted:#93a0b3; --text:#e8eef6;
+    --accent:#6ee7ff; --accent-2:#8ef29a; --danger:#ff6b6b; --warning:#ffd166;
+    --ok:#4ade80;
+    --border:rgba(255,255,255,.07);
+  }
+  html,body{height:100%}
+  body{
+    margin:0; color:var(--text); background: radial-gradient(1600px 800px at 10% -10%, #112233 0%, #0b0f14 40%, #0b0f14 100%), var(--bg);
+    font-family: system-ui, -apple-system, Segoe UI, Roboto, "Hiragino Kaku Gothic ProN", Meiryo, "Noto Sans JP", sans-serif;
+    line-height:1.6;
+  }
+  .wrap{max-width:1100px;margin:0 auto;padding:24px}
+  header{display:flex;gap:16px; align-items:center; margin-bottom:18px;}
+  header h1{font-size:1.4rem; font-weight:700; margin:0;}
+  header .badge{padding:4px 10px;border:1px solid var(--border);border-radius:999px;color:var(--muted);}
+  .grid{
+    display:grid; gap:14px;
+    grid-template-columns: repeat(12,minmax(0,1fr));
+  }
+  .card{
+    background: linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,.0));
+    border:1px solid var(--border); border-radius:14px; padding:14px;
+    box-shadow: 0 8px 30px rgba(0,0,0,.25);
+    backdrop-filter: blur(6px);
+  }
+  .kpi{display:flex; align-items:center; justify-content:space-between; gap:10px;}
+  .kpi .label{color:var(--muted); font-size:.9rem;}
+  .kpi .value{font-size:1.3rem; font-variant-numeric: tabular-nums;}
+  .kpi .sub{font-size:.8rem; color:var(--muted);}
+  .kpi em{font-style:normal; color:var(--accent)}
+  .chips{display:flex; gap:6px; flex-wrap:wrap; margin-top:8px;}
+  .chip{font-size:.8rem; padding:2px 8px; border:1px solid var(--border); border-radius:999px; color:var(--muted);}
+  .repbar{margin-top:8px; height:12px; border-radius:999px; background:#0e1520; border:1px solid var(--border); overflow:hidden;}
+  .repbar>div{height:100%; width:0%; background: linear-gradient(90deg, var(--accent), var(--accent-2)); transition: width .25s ease;}
+  .actions h2{margin:0 0 8px 0; font-size:1.1rem;}
+  .btns{display:grid; gap:10px;}
+  @media (min-width:720px){
+    .btns{grid-template-columns: repeat(3,minmax(0,1fr));}
+  }
+  button.btn{
+    appearance:none; border:1px solid var(--border); background: rgba(255,255,255,.02);
+    color:var(--text); border-radius:12px; padding:14px; text-align:left; cursor:pointer;
+    transition:transform .06s ease, border-color .2s ease, background .2s ease, box-shadow .2s ease;
+  }
+  button.btn:disabled{opacity:.55; cursor:not-allowed;}
+  button.btn:hover:not(:disabled){transform: translateY(-1px); border-color: rgba(255,255,255,.15);}
+  .btn .title{font-weight:700; margin-bottom:2px;}
+  .btn .desc{color:var(--muted); font-size:.9rem;}
+  .btn .right{float:right; font-variant-numeric: tabular-nums;}
+  .btn.danger{border-color: rgba(255,0,0,.25); box-shadow: inset 0 0 0 1px rgba(255,0,0,.25);}
+  .btn.good{border-color: rgba(0,255,128,.2);}
+  .log{max-height:280px; overflow:auto; font-size:.92rem; padding-right:6px;}
+  .log p{margin:0 0 6px 0;}
+  .muted{color:var(--muted)}
+  .hl{color:var(--accent)}
+  .yen{font-variant-numeric: tabular-nums}
+  .toolbar{display:flex; gap:10px; flex-wrap:wrap}
+  .toolbar button{
+    appearance:none; border:1px solid var(--border); background: rgba(255,255,255,.04);
+    color:var(--text); border-radius:10px; padding:8px 12px; cursor:pointer;
+  }
+  .toolbar button:hover{border-color: rgba(255,255,255,.15);}
+  .footer{color:var(--muted); font-size:.88rem; margin-top:12px}
+
+  /* overlay */
+  .overlay{
+    position:fixed; inset:0; display:none; align-items:center; justify-content:center;
+    background: rgba(0,0,0,.55); z-index:40; padding:24px;
+  }
+  .overlay .panel{max-width:520px; background:var(--card); border:1px solid var(--border);
+    border-radius:16px; padding:22px; text-align:center}
+  .overlay h3{margin:0 0 8px 0}
+  .overlay .msg{color:var(--muted); margin-bottom:12px}
+  .overlay .row{display:flex; gap:10px; justify-content:center; flex-wrap:wrap}
+  .overlay.show{display:flex}
+  .tag-danger{color:var(--danger)}
+  .tag-ok{color:var(--ok)}
+  .tag-warn{color:var(--warning)}
+  details summary{cursor:pointer}
+  code.inline{padding:.1em .45em; background:#0f1622; border:1px solid var(--border); border-radius:6px}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>街いち善人 <span class="badge">Reputation 6666 を目指せ</span></h1>
+    </header>
+
+    <section class="grid">
+      <div class="card" style="grid-column: span 6;">
+        <div class="kpi"><div class="label">所持金</div><div class="value yen" id="kMoney">¥100,000</div></div>
+        <div class="chips">
+          <span class="chip">生き残った日数：<b id="kDays">0</b></span>
+          <span class="chip">転生回数：<b id="kReinc">0</b></span>
+        </div>
+      </div>
+
+      <div class="card" style="grid-column: span 6;">
+        <div class="kpi"><div class="label">食事</div><div class="value" id="kFood">10</div></div>
+        <div class="kpi" style="margin-top:8px"><div class="label">水</div><div class="value" id="kWater">10</div></div>
+      </div>
+
+      <div class="card" style="grid-column: span 12;">
+        <div class="kpi">
+          <div>
+            <div class="label">評判</div>
+            <div class="sub">上限 <b>6666</b>（<span id="kGoal">100</span> / 6666）</div>
+          </div>
+          <div class="value" id="kReputation">100</div>
+        </div>
+        <div class="repbar"><div id="repfill" style="width:0%"></div></div>
+      </div>
+
+      <div class="card actions" style="grid-column: span 7;">
+        <h2>今日の行動</h2>
+        <div id="btns" class="btns">
+          <button id="actSteal" class="btn">
+            <div class="title">盗む</div>
+            <div class="desc">今日のオファー：<span id="stealOffer" class="yen">+¥0</span><span class="right">評判 -10</span></div>
+          </button>
+          <button id="actBuy" class="btn">
+            <div class="title">食事と水を買う</div>
+            <div class="desc">今日のオファー：食事 <b id="buyFood">0</b> / 水 <b id="buyWater">0</b>（<span id="buyCost" class="yen">¥0</span>）</div>
+          </button>
+          <button id="actClean" class="btn good">
+            <div class="title">街の清掃活動</div>
+            <div class="desc">評判 +10</div>
+          </button>
+          <button id="actWork" class="btn good">
+            <div class="title">アルバイト</div>
+            <div class="desc">所持金 -10,000 ・ 評判 +50</div>
+          </button>
+          <button id="actGamble" class="btn">
+            <div class="title">ギャンブル</div>
+            <div class="desc"><span class="yen">+¥20,000</span>（40%で評判 -100）</div>
+          </button>
+          <button id="actReincarnate" class="btn">
+            <div class="title">転生</div>
+            <div class="desc">所持金 = 100,000 + 1,000×生き残った日数 / 食事10 / 水10 / 評判100（その日数を 0 に）</div>
+          </button>
+        </div>
+        <div class="footer">
+          <div class="toolbar" style="margin-top:10px">
+            <button id="btnRestart">最初から</button>
+            <button id="btnSave">手動保存</button>
+            <button id="btnLoad">読み込み</button>
+            <button id="btnRule">ルール表示</button>
+          </div>
+          <p class="muted" style="margin-top:8px">ヒント：評判が<span class="tag-danger">0以下</span>での<strong>盗む/ギャンブル</strong>は<span class="tag-danger">30%で即ゲームオーバー</span>。所持金が少ないときはアルバイトや清掃で立て直そう。</p>
+        </div>
+      </div>
+
+      <div class="card" style="grid-column: span 5;">
+        <h2 style="margin:0 0 8px 0;">履歴</h2>
+        <div id="log" class="log"></div>
+      </div>
+    </section>
+
+    <section class="card" style="margin-top:14px">
+      <details>
+        <summary>ルール（クリックで表示）</summary>
+        <ul>
+          <li>初期：所持金 <code class="inline">100,000</code> / 食事 <code class="inline">10</code> / 水 <code class="inline">10</code> / 評判 <code class="inline">100</code></li>
+          <li>1日の行動後、<b>食事-1・水-1</b>。ただし<b>消費前にどちらかが0なら即ゲームオーバー</b>。</li>
+          <li>評判<b>0以下</b>の状態で<strong>盗む</strong> or <strong>ギャンブル</strong>を選ぶと、<b>30%</b>でゲームオーバー。</li>
+          <li>行動：
+            <ul>
+              <li>盗む：その日提示の <code class="inline">+¥3000～¥10000</code>、評判 -10</li>
+              <li>買う：その日提示の 食事<code class="inline">+1～+4</code> / 水<code class="inline">+1～+4</code>、価格 <code class="inline">2000×食事 + 1000×水</code>（不足時は選択不可）</li>
+              <li>清掃：評判 +10</li>
+              <li>アルバイト：所持金 +10,000・評判 +50</li>
+              <li>ギャンブル：所持金 +20,000、40%で評判 -100</li>
+              <li>転生：所持金を <code class="inline">100,000 + 1,000×生き残った日数</code> に再設定し、食事10・水10・評判100、<b>生き残った日数=0</b>（転生した当日は日数を増やしません）</li>
+            </ul>
+          </li>
+          <li>評判の上限は <b>6666</b>。到達でゲームクリア。</li>
+        </ul>
+      </details>
+    </section>
+
+    <div id="overlay" class="overlay" role="dialog" aria-modal="true">
+      <div class="panel">
+        <h3 id="ovTitle">タイトル</h3>
+        <div id="ovMsg" class="msg">メッセージ</div>
+        <div class="row" id="ovRow">
+          <button id="ovPrimary">OK</button>
+          <button id="ovSecondary">キャンセル</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+(()=> {
+/** ======= 定数 ======= */
+const START = { money:100000, food:10, water:10, rep:100 };
+const REP_CAP = 6666;
+const STORAGE_KEY = "zenjin_game_v1";
+
+const fmtYen = n => "¥" + n.toLocaleString("ja-JP");
+const clamp = (v,min,max)=> Math.max(min, Math.min(max, v));
+const randInt = (a,b)=> Math.floor(Math.random()*(b-a+1))+a;
+
+const els = {
+  kMoney: document.getElementById('kMoney'),
+  kFood: document.getElementById('kFood'),
+  kWater: document.getElementById('kWater'),
+  kReputation: document.getElementById('kReputation'),
+  repfill: document.getElementById('repfill'),
+  kDays: document.getElementById('kDays'),
+  kReinc: document.getElementById('kReinc'),
+  kGoal: document.getElementById('kGoal'),
+  stealOffer: document.getElementById('stealOffer'),
+  buyFood: document.getElementById('buyFood'),
+  buyWater: document.getElementById('buyWater'),
+  buyCost: document.getElementById('buyCost'),
+  log: document.getElementById('log'),
+  overlay: document.getElementById('overlay'),
+  ovTitle: document.getElementById('ovTitle'),
+  ovMsg: document.getElementById('ovMsg'),
+  ovPrimary: document.getElementById('ovPrimary'),
+  ovSecondary: document.getElementById('ovSecondary'),
+
+  actSteal: document.getElementById('actSteal'),
+  actBuy: document.getElementById('actBuy'),
+  actClean: document.getElementById('actClean'),
+  actWork: document.getElementById('actWork'),
+  actGamble: document.getElementById('actGamble'),
+  actReincarnate: document.getElementById('actReincarnate'),
+
+  btnRestart: document.getElementById('btnRestart'),
+  btnSave: document.getElementById('btnSave'),
+  btnLoad: document.getElementById('btnLoad'),
+  btnRule: document.getElementById('btnRule'),
+};
+
+let state = {
+  money: START.money,
+  food: START.food,
+  water: START.water,
+  rep: START.rep,
+  days: 0,
+  reinc: 0,
+  offer: { steal: 0, food: 0, water: 0, cost:0 },
+  gameOver: false,
+  victory: false,
+  busy: false,
+  skipIncToday: false, // 転生当日は日数+1しない
+};
+
+/** ======= ストレージ ======= */
+function save(){
+  try{
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    toast("保存しました。");
+  }catch(e){ console.warn(e); toast("保存に失敗しました。"); }
+}
+function load(){
+  const s = localStorage.getItem(STORAGE_KEY);
+  if(!s){ toast("保存データが見つかりません。"); return; }
+  try{
+    state = JSON.parse(s);
+    rollOffersIfMissing(); // 旧データ救済
+    normalizeAfterLoad();   // ★追加
+    updateUI();
+    logLine("保存データを読み込みました。");
+  }catch(e){ console.warn(e); toast("読み込みに失敗しました。"); }
+}
+
+/** ======= ログ ======= */
+function logLine(html){
+  const p = document.createElement('p');
+  p.innerHTML = html;
+  els.log.prepend(p);
+}
+
+/** ======= オファー（毎日） ======= */
+function rollOffers(){
+  state.offer.steal = randInt(3000,10000);
+  state.offer.food  = randInt(1,4);
+  state.offer.water = randInt(1,4);
+  state.offer.cost  = state.offer.food*2000 + state.offer.water*1000;
+}
+function rollOffersIfMissing(){
+  if(!state.offer || !Number.isFinite(state.offer.cost)){
+    state.offer = { steal:0, food:0, water:0, cost:0 };
+  }
+  if(state.offer.cost === 0){
+    rollOffers();
+  }
+}
+
+/** ======= UI更新 ======= */
+function updateUI(){
+  els.kMoney.textContent = fmtYen(state.money);
+  els.kFood.textContent = state.food;
+  els.kWater.textContent = state.water;
+  els.kReputation.textContent = state.rep;
+  els.kDays.textContent = state.days;
+  els.kReinc.textContent = state.reinc;
+  els.kGoal.textContent = state.rep;
+
+  // 評判バー
+  const pct = clamp((state.rep/REP_CAP)*100, 0, 100);
+  els.repfill.style.width = pct.toFixed(2) + "%";
+
+  // 今日のオファー表示
+  els.stealOffer.textContent = "+" + fmtYen(state.offer.steal);
+  els.buyFood.textContent = state.offer.food;
+  els.buyWater.textContent = state.offer.water;
+  els.buyCost.textContent = fmtYen(state.offer.cost);
+
+  // ボタン状態
+  const insufficient = state.money < state.offer.cost;
+  els.actBuy.disabled = insufficient || state.gameOver || state.victory || state.busy;
+  els.actSteal.disabled = state.gameOver || state.victory || state.busy;
+  els.actClean.disabled = state.gameOver || state.victory || state.busy;
+const insufficientWork = state.money < 10000;
+els.actWork.disabled = insufficientWork || state.gameOver || state.victory || state.busy;
+  els.actGamble.disabled = state.gameOver || state.victory || state.busy;
+  els.actReincarnate.disabled = state.gameOver || state.victory || state.busy;
+
+  // 低評判の警告（盗む/ギャンブル）
+  const danger = state.rep <= 0;
+  els.actSteal.classList.toggle('danger', danger);
+  els.actGamble.classList.toggle('danger', danger);
+  // 購入は好印象
+  els.actClean.classList.add('good'); els.actWork.classList.add('good');
+}
+
+/** ======= ユーティリティ ======= */
+function clampRep(v){
+  // 上限は 6666。ただし負の値も保持（条件判定に使うため）
+  return Math.min(v, REP_CAP);
+}
+function preConsumeCheckOrDie(){
+  if(state.food <= 0 || state.water <= 0){
+    gameOver("食料または水が尽きてしまった…（消費前に0）");
+    return true;
+  }
+  return false;
+}
+function dailyConsume(){
+  state.food = Math.max(0, state.food - 1);
+  state.water = Math.max(0, state.water - 1);
+}
+function maybeVictory(){
+  if(state.rep >= REP_CAP){
+    state.rep = REP_CAP;
+    state.victory = true;
+    showOverlay("ゲームクリア！", "あなたは街で一番の善人になりました。<br>おめでとうございます！", [
+      {label:"もう一度最初から", action: ()=>{ restart(); hideOverlay(); }},
+    ]);
+    updateUI();
+    return true;
+  }
+  return false;
+}
+function endOfDay(){
+  // 行動後 → 消費前の死亡判定
+  if(preConsumeCheckOrDie()){ updateUI(); saveSilent(); return; }
+
+  // 消費
+  dailyConsume();
+
+  // 勝利チェック（評判は行動直後に変動済み）
+  if(maybeVictory()){ saveSilent(); return; }
+
+  // 日数カウント：転生直後は増やさない（仕様準拠）
+  if(state.skipIncToday){
+    state.skipIncToday = false;
+  }else{
+    state.days += 1;
+  }
+
+  // 次の日のオファー
+  rollOffers();
+  updateUI();
+  saveSilent();
+}
+
+function gameOver(reason){
+  state.gameOver = true;
+  showOverlay("ゲームオーバー", reason, [
+    {label:"最初からやり直す", action: ()=>{ restart(); hideOverlay(); }},
+    {label:"閉じる", action: ()=>{ hideOverlay(); }},
+  ]);
+}
+function showOverlay(title, msg, buttons){
+  // 必要なら行を再構築
+  let row = document.getElementById('ovRow');
+  if(!row){
+    // overlay 内に row が無い場合でも自動生成
+    const wrapper = els.overlay || document.getElementById('overlay');
+    const panel = wrapper?.querySelector('.panel') || wrapper;
+    row = document.createElement('div');
+    row.className = 'row';
+    row.id = 'ovRow';
+    panel.appendChild(row);
+  }
+
+  // ヘッダと本文（見つからない場合は安全に作る）
+  let ovTitle = els.ovTitle || document.getElementById('ovTitle');
+  if(!ovTitle){
+    ovTitle = document.createElement('h3');
+    ovTitle.id = 'ovTitle';
+    row.parentElement.insertBefore(ovTitle, row.parentElement.firstChild);
+  }
+  let ovMsg = els.ovMsg || document.getElementById('ovMsg');
+  if(!ovMsg){
+    ovMsg = document.createElement('div');
+    ovMsg.className = 'msg';
+    ovMsg.id = 'ovMsg';
+    row.parentElement.insertBefore(ovMsg, row);
+  }
+
+  ovTitle.textContent = title;
+  ovMsg.innerHTML = msg;
+
+  // ボタンを作り直し
+  row.innerHTML = "";
+  (buttons || [{label:"OK"}]).forEach(b=>{
+    const btn = document.createElement('button');
+    btn.textContent = b.label || "OK";
+    btn.addEventListener('click', ()=>{ b.action && b.action(); });
+    row.appendChild(btn);
+  });
+
+  (els.overlay || document.getElementById('overlay')).classList.add('show');
+}
+
+function hideOverlay(){ els.overlay.classList.remove('show'); }
+
+function toast(text){ // 簡易トースト：ログに表示
+  logLine(`<span class="muted">${escapeHtml(text)}</span>`);
+}
+function escapeHtml(s){ return s.replace(/[&<>"']/g, m=>({ "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;" }[m])); }
+function saveSilent(){ try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }catch{} }
+
+/** ======= 行動 ======= */
+function dangerCheckIfLowRep(actionLabel){
+  if(state.rep <= 0){
+    if(Math.random() < 0.30){
+      gameOver(`評判が低すぎたため、<b>${escapeHtml(actionLabel)}</b>の最中に住民から通報されました。`);
+      return true;
+    }
+  }
+  return false;
+}
+
+function actSteal(){
+  return runAction(()=> {
+    if(dangerCheckIfLowRep("盗む")) return false; // 即ゲームオーバー発動時はここで終了
+    const yen = state.offer.steal;
+    state.money += yen;
+    state.rep = clampRep(state.rep - 10);
+    logLine(`盗む：<span class="yen hl">+${fmtYen(yen)}</span> ／ 評判 <span class="tag-danger">-10</span>`);
+  });
+}
+
+function actBuy(){
+  return runAction(()=> {
+    const cost = state.offer.cost;
+    if(state.money < cost){ toast("所持金が不足しています。"); return false; }
+    state.money -= cost;
+    state.food  += state.offer.food;
+    state.water += state.offer.water;
+    logLine(`購入：食事 <b>+${state.offer.food}</b>・水 <b>+${state.offer.water}</b> ／ 支払い <span class="yen">-${fmtYen(cost)}</span>`);
+  });
+}
+
+function actClean(){
+  return runAction(()=> {
+    state.rep = clampRep(state.rep + 10);
+    logLine(`清掃活動：評判 <span class="tag-ok">+10</span>`);
+  });
+}
+
+function actGamble(){
+  return runAction(()=> {
+    if(dangerCheckIfLowRep("ギャンブル")) return false;
+    state.money += 20000;
+    const bad = Math.random() < 0.40;
+    let msg = `ギャンブル：所持金 <span class="yen hl">+¥20,000</span>`;
+    if(bad){ state.rep = clampRep(state.rep - 100); msg += ` ／ 評判 <span class="tag-danger">-100</span>`; }
+    else   { msg += ` ／ 評判変動なし`; }
+    logLine(msg);
+  });
+}
+
+function actReincarnate(){
+  confirmOverlay(
+    "転生しますか？",
+    `所持金を <b class="yen">¥100,000 + 1,000×${state.days} = ${fmtYen(100000 + state.days*1000)}</b> に再設定し、<br>食事10・水10・評判100・生き残った日数を <b>0</b> にします。`,
+    ()=> runAction(()=> {
+      state.money = 100000 + state.days*1000;
+      state.food = 11; state.water = 11; state.rep = 100;
+      state.days = 0; state.reinc += 1;
+      state.skipIncToday = true; // 当日は日数を増やさない
+      logLine(`転生：所持金を <span class="yen hl">${fmtYen(state.money)}</span> に再設定。食事/水/評判リセット。日数は <b>0</b> に。`);
+      hideOverlay();
+    })
+  );
+}
+
+function actWork(){
+  return runAction(()=> {
+    if(state.money < 10000){ toast("アルバイトには 10,000 円が必要です。"); return false; }
+    state.money -= 10000;
+    state.rep = clampRep(state.rep + 50);
+    logLine(`アルバイト：所持金 <span class="yen hl">-¥10,000</span> ・ 評判 <span class="tag-ok">+50</span>`);
+    // return (undefined) → 次の日へ進む
+  });
+}
+
+
+// 追加：すべての行動をこのラッパーで実行
+function runAction(safeAction){
+  if(state.busy || state.gameOver || state.victory) return;
+  state.busy = true;
+  try{
+    const proceed = safeAction(); // 行動本体（必要なら早期returnでキャンセル可能）
+    if(proceed === false) return; // 例: 所持金不足などでキャンセル
+    endOfDay();
+  } finally {
+    state.busy = false; // 例外があっても必ず解除
+    updateUI();         // UI同期も保証
+  }
+}
+
+
+function confirmOverlay(title, msg, onOk){
+  showOverlay(title, msg, [
+    {label:"OK", action: onOk},
+    {label:"キャンセル", action: ()=>hideOverlay()},
+  ]);
+}
+
+/** ======= 初期化・操作 ======= */
+function restart(){
+  state = {
+    money: START.money, food: START.food, water: START.water, rep: START.rep,
+    days: 0, reinc: 0,
+    offer: { steal:0, food:0, water:0, cost:0 },
+    gameOver:false, victory:false, busy:false, skipIncToday:false
+  };
+  rollOffers();
+  els.log.innerHTML = "";
+  logLine("新しいゲームを開始しました。");
+  updateUI();
+  saveSilent();
+}
+
+// ★追加：セーブ復元直後の一時フラグを正規化
+function normalizeAfterLoad(){
+  state.busy = false;           // ← これが最重要（クリック不能の主因）
+  state.skipIncToday = false;   // 念のためリセット
+  rollOffersIfMissing();        // 旧データや未生成のオファーを補完
+  (els.overlay || document.getElementById('overlay'))?.classList.remove('show'); // もし開いてたら閉じる
+}
+
+
+function init(){
+  // 既存セーブがあれば自動ロード
+  const s = localStorage.getItem(STORAGE_KEY);
+  if(s){
+    try{
+      state = JSON.parse(s);
+      rollOffersIfMissing();
+      normalizeAfterLoad();   // ★追加
+      logLine("前回の続きから再開しました。");
+    }catch{
+      restart();
+    }
+  }else{
+    restart();
+  }
+
+  // イベント
+  els.actSteal.addEventListener('click', actSteal);
+  els.actBuy.addEventListener('click', actBuy);
+  els.actClean.addEventListener('click', actClean);
+  els.actWork.addEventListener('click', actWork);
+  els.actGamble.addEventListener('click', actGamble);
+  els.actReincarnate.addEventListener('click', actReincarnate);
+
+  els.btnRestart.addEventListener('click', ()=>confirmOverlay("最初からやり直す？","現在の進行状況は失われます。", ()=>{ hideOverlay(); restart(); }));
+  els.btnSave.addEventListener('click', save);
+  els.btnLoad.addEventListener('click', load);
+  els.btnRule.addEventListener('click', ()=>{
+    const d = document.querySelector('details'); d.open = true; d.scrollIntoView({behavior:'smooth', block:'center'});
+  });
+
+  // キーボード：1〜6で行動
+  window.addEventListener('keydown', (e)=>{
+    if(e.target.closest('input, textarea, [contenteditable="true"]')) return;
+    const k = e.key;
+    if(k==='1') els.actSteal.click();
+    if(k==='2') els.actBuy.click();
+    if(k==='3') els.actClean.click();
+    if(k==='4') els.actWork.click();
+    if(k==='5') els.actGamble.click();
+    if(k==='6') els.actReincarnate.click();
+  });
+
+  updateUI();
+}
+
+document.addEventListener('DOMContentLoaded', init);
+})();
+</script>
+</body>
+</html>
