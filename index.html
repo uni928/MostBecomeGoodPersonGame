@@ -517,7 +517,7 @@ function actWork(){
     if(state.money < 10000){ toast("アルバイトには 10,000 円が必要です。"); return false; }
     state.money -= 10000;
     state.rep = clampRep(state.rep + 50);
-    logLine(`アルバイト：所持金 <span class="yen hl">-¥10,000</span> ・ 評判 <span class="tag-ok">+50</span>`);
+    logLine(`アルバイト：所持金 <span class="yen">-¥10,000</span> ・ 評判 <span class="tag-ok">+50</span>`);
     // return (undefined) → 次の日へ進む
   });
 }
@@ -620,5 +620,6 @@ document.addEventListener('DOMContentLoaded', init);
 </script>
 </body>
 </html>
+
 
 
