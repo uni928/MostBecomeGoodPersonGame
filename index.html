@@ -136,7 +136,7 @@
             <div class="desc">評判 +10</div>
           </button>
           <button id="actWork" class="btn good">
-            <div class="title">アルバイト</div>
+            <div class="title">雇う</div>
             <div class="desc">所持金 -10,000 ・ 評判 +50</div>
           </button>
           <button id="actGamble" class="btn">
@@ -155,7 +155,7 @@
             <button id="btnLoad">読み込み</button>
             <button id="btnRule">ルール表示</button>
           </div>
-          <p class="muted" style="margin-top:8px">ヒント：評判が<span class="tag-danger">0以下</span>での<strong>脅す/盗む</strong>は<span class="tag-danger">30%で即ゲームオーバー</span>。評判が悪い場合はアルバイトや清掃で立て直そう。</p>
+          <p class="muted" style="margin-top:8px">ヒント：評判が<span class="tag-danger">0以下</span>での<strong>脅す/盗む</strong>は<span class="tag-danger">30%で即ゲームオーバー</span>。評判が悪い場合は雇うや清掃で立て直そう。</p>
         </div>
       </div>
 
@@ -177,7 +177,7 @@
               <li>脅す：その日提示の <code class="inline">+¥3000～¥10000</code>、評判 -10</li>
               <li>買う：その日提示の 食事<code class="inline">+1～+4</code> / 水<code class="inline">+1～+4</code>、価格 <code class="inline">2000×食事 + 1000×水</code>（不足時は選択不可）</li>
               <li>清掃：評判 +10</li>
-              <li>アルバイト：所持金 -10,000・評判 +50</li>
+              <li>雇う：所持金 -10,000・評判 +50</li>
               <li>盗む：所持金 +20,000、40%で評判 -100</li>
               <li>転生：所持金を <code class="inline">100,000 + 1,000×生き残った日数</code> に再設定し、食事10・水10・評判100、<b>生き残った日数=0</b>（転生した当日は日数を増やしません）</li>
             </ul>
@@ -514,10 +514,10 @@ function actReincarnate(){
 
 function actWork(){
   return runAction(()=> {
-    if(state.money < 10000){ toast("アルバイトには 10,000 円が必要です。"); return false; }
+    if(state.money < 10000){ toast("雇うには 10,000 円が必要です。"); return false; }
     state.money -= 10000;
     state.rep = clampRep(state.rep + 50);
-    logLine(`アルバイト：所持金 <span class="yen">-¥10,000</span> ・ 評判 <span class="tag-ok">+50</span>`);
+    logLine(`雇う：所持金 <span class="yen">-¥10,000</span> ・ 評判 <span class="tag-ok">+50</span>`);
     // return (undefined) → 次の日へ進む
   });
 }
@@ -620,4 +620,3 @@ document.addEventListener('DOMContentLoaded', init);
 </script>
 </body>
 </html>
-
