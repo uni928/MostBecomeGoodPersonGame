@@ -124,7 +124,7 @@
         <h2>今日の行動</h2>
         <div id="btns" class="btns">
           <button id="actSteal" class="btn">
-            <div class="title">盗む</div>
+            <div class="title">脅す</div>
             <div class="desc">今日のオファー：<span id="stealOffer" class="yen">+¥0</span><span class="right">評判 -10</span></div>
           </button>
           <button id="actBuy" class="btn">
@@ -140,7 +140,7 @@
             <div class="desc">所持金 -10,000 ・ 評判 +50</div>
           </button>
           <button id="actGamble" class="btn">
-            <div class="title">ギャンブル</div>
+            <div class="title">盗む</div>
             <div class="desc"><span class="yen">+¥20,000</span>（40%で評判 -100）</div>
           </button>
           <button id="actReincarnate" class="btn">
@@ -155,7 +155,7 @@
             <button id="btnLoad">読み込み</button>
             <button id="btnRule">ルール表示</button>
           </div>
-          <p class="muted" style="margin-top:8px">ヒント：評判が<span class="tag-danger">0以下</span>での<strong>盗む/ギャンブル</strong>は<span class="tag-danger">30%で即ゲームオーバー</span>。評判が悪い場合はアルバイトや清掃で立て直そう。</p>
+          <p class="muted" style="margin-top:8px">ヒント：評判が<span class="tag-danger">0以下</span>での<strong>脅す/盗む</strong>は<span class="tag-danger">30%で即ゲームオーバー</span>。評判が悪い場合はアルバイトや清掃で立て直そう。</p>
         </div>
       </div>
 
@@ -171,14 +171,14 @@
         <ul>
           <li>初期：所持金 <code class="inline">100,000</code> / 食事 <code class="inline">10</code> / 水 <code class="inline">10</code> / 評判 <code class="inline">100</code></li>
           <li>1日の行動後、<b>食事-1・水-1</b>。ただし<b>消費前にどちらかが0なら即ゲームオーバー</b>。</li>
-          <li>評判<b>0以下</b>の状態で<strong>盗む</strong> or <strong>ギャンブル</strong>を選ぶと、<b>30%</b>でゲームオーバー。</li>
+          <li>評判<b>0以下</b>の状態で<strong>脅す</strong> or <strong>盗む</strong>を選ぶと、<b>30%</b>でゲームオーバー。</li>
           <li>行動：
             <ul>
-              <li>盗む：その日提示の <code class="inline">+¥3000～¥10000</code>、評判 -10</li>
+              <li>脅す：その日提示の <code class="inline">+¥3000～¥10000</code>、評判 -10</li>
               <li>買う：その日提示の 食事<code class="inline">+1～+4</code> / 水<code class="inline">+1～+4</code>、価格 <code class="inline">2000×食事 + 1000×水</code>（不足時は選択不可）</li>
               <li>清掃：評判 +10</li>
               <li>アルバイト：所持金 -10,000・評判 +50</li>
-              <li>ギャンブル：所持金 +20,000、40%で評判 -100</li>
+              <li>盗む：所持金 +20,000、40%で評判 -100</li>
               <li>転生：所持金を <code class="inline">100,000 + 1,000×生き残った日数</code> に再設定し、食事10・水10・評判100、<b>生き残った日数=0</b>（転生した当日は日数を増やしません）</li>
             </ul>
           </li>
@@ -329,7 +329,7 @@ els.actWork.disabled = insufficientWork || state.gameOver || state.victory || st
   els.actGamble.disabled = state.gameOver || state.victory || state.busy;
   els.actReincarnate.disabled = state.gameOver || state.victory || state.busy;
 
-  // 低評判の警告（盗む/ギャンブル）
+  // 低評判の警告（脅す/盗む）
   const danger = state.rep <= 0;
   els.actSteal.classList.toggle('danger', danger);
   els.actGamble.classList.toggle('danger', danger);
@@ -459,11 +459,11 @@ function dangerCheckIfLowRep(actionLabel){
 
 function actSteal(){
   return runAction(()=> {
-    if(dangerCheckIfLowRep("盗む")) return false; // 即ゲームオーバー発動時はここで終了
+    if(dangerCheckIfLowRep("脅す")) return false; // 即ゲームオーバー発動時はここで終了
     const yen = state.offer.steal;
     state.money += yen;
     state.rep = clampRep(state.rep - 10);
-    logLine(`盗む：<span class="yen hl">+${fmtYen(yen)}</span> ／ 評判 <span class="tag-danger">-10</span>`);
+    logLine(`脅す：<span class="yen hl">+${fmtYen(yen)}</span> ／ 評判 <span class="tag-danger">-10</span>`);
   });
 }
 
@@ -487,10 +487,10 @@ function actClean(){
 
 function actGamble(){
   return runAction(()=> {
-    if(dangerCheckIfLowRep("ギャンブル")) return false;
+    if(dangerCheckIfLowRep("盗む")) return false;
     state.money += 20000;
     const bad = Math.random() < 0.40;
-    let msg = `ギャンブル：所持金 <span class="yen hl">+¥20,000</span>`;
+    let msg = `盗む：所持金 <span class="yen hl">+¥20,000</span>`;
     if(bad){ state.rep = clampRep(state.rep - 100); msg += ` ／ 評判 <span class="tag-danger">-100</span>`; }
     else   { msg += ` ／ 評判変動なし`; }
     logLine(msg);
@@ -620,7 +620,4 @@ document.addEventListener('DOMContentLoaded', init);
 </script>
 </body>
 </html>
-
-
-
 
